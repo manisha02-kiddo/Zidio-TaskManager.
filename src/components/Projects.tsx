@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, GitBranch, Clock, ChevronDown, ChevronUp, Users, Link, FileText, Code, CheckSquare, BarChart3, MessageCircle, Plus, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Folder, GitBranch, Clock, ChevronDown, ChevronUp, Users,  FileText,  CheckSquare,  MessageCircle, Plus, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -406,6 +405,9 @@ export function Projects() {
           </div>
         </div>
       )}
+       <div>
+    {user ? <p>Logged in as {user.email}</p> : <p>Please log in</p>}
+  </div>
 
       {/* Subproject Details Modal */}
       {selectedSubproject && (

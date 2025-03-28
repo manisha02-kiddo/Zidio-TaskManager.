@@ -94,7 +94,7 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${user?.id}/${fileName}`;
 
-        const { data, error: uploadError } = await supabase.storage
+        const {  error: uploadError } = await supabase.storage
           .from('chat-attachments')
           .upload(filePath, file);
 
@@ -118,6 +118,8 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
     setFiles([]);
     return attachments;
   };
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
