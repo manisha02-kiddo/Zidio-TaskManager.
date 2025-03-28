@@ -3,12 +3,14 @@
     "private": true,
     "version": "0.0.0",
     "type": "module",
+    "homepage": "https://manisha02_kiddo.github.io/Zidio-TaskManager./",
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview",
-        "deploy": "gh-pages -d dist"
+        "predeploy": "npm run build",
+         "deploy": "gh-pages -d dist"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.39.7",
