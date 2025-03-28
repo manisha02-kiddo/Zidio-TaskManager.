@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send,MessageSquare , X, Paperclip, Image, File } from 'lucide-react';
+import { Send, MessageSquare, X, Paperclip, Image, File } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
@@ -39,15 +39,11 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
 
   useEffect(() => {
     if (isOpen) {
-      // Subscribe to new messages
       const channel = supabase
         .channel('chat_messages')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        }, (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          console.log('New message received:', payload.new);
+          setMessages((prev) => [...prev, payload.new as Message]);
         })
         .subscribe();
 
@@ -64,7 +60,7 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
   const loadMessages = async () => {
     const { data, error } = await supabase
       .from('messages')
-      .select('*, attachments(*)')
+      .select('*')
       .order('created_at', { ascending: true })
       .limit(50);
 
@@ -98,7 +94,7 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${user?.id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { data, error: uploadError } = await supabase.storage
           .from('chat-attachments')
           .upload(filePath, file);
 
@@ -128,22 +124,32 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
     if ((!newMessage.trim() && !files.length) || !user || uploading) return;
 
     try {
+      console.log('Sending message...');
+
       const attachments = await uploadFiles();
 
       const message = {
         sender_id: user.id,
         sender_name: user.email?.split('@')[0] || 'Anonymous',
-        content: newMessage.trim(),
-        attachments
+        content: newMessage.trim()  || null,
+        attachments: attachments.length ? attachments : null,
+        created_at: new Date().toISOString(),
       };
-
-      const { error } = await supabase
+      console.log('Message Payload:', message);
+      const { data, error } = await supabase
         .from('messages')
-        .insert([message]);
+        .insert([message])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting message:', error);
+        return;
+      }
+
+      console.log('Message sent successfully:', data);
 
       setNewMessage('');
+      setMessages((prev) => [...prev, ...data]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -158,147 +164,68 @@ export function ChatSystem({ isOpen, onClose }: ChatSystemProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
       <div className="bg-white w-full sm:w-auto sm:max-w-2xl h-[90vh] sm:h-[600px] rounded-t-lg sm:rounded-lg flex flex-col">
         <div className="p-3 sm:p-4 border-b flex justify-between items-center bg-indigo-600 text-white rounded-t-lg">
-        <div className="p-3 sm:p-4 border-b flex justify-between items-center bg-indigo-600 text-white rounded-t-lg">
-  <div className="flex items-center space-x-2"> {/* Wrap icon & text in a div */}
-    <MessageSquare className="h-5 w-5 text-white" /> {/* ADD THIS LINE at ~line 159 */}
-    <h3 className="font-semibold">Team Chat</h3>
-  </div>
-  <button onClick={onClose} className="text-white hover:text-gray-200">
-    <X className="h-5 w-5" />
-  </button>
-</div>
-
-          <h3 className="font-semibold">Team Chat</h3>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200"
-          >
+          <div className="flex items-center space-x-2">
+            <MessageSquare className="h-5 w-5 text-white" />
+            <h3 className="font-semibold">Team Chat</h3>
+          </div>
+          <button onClick={onClose} className="text-white hover:text-gray-200">
             <X className="h-5 w-5" />
           </button>
         </div>
+        
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex flex-col ${
-                message.sender_id === user?.id ? 'items-end' : 'items-start'
-              }`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.sender_id === user?.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                <p className="text-sm font-medium mb-1">{message.sender_name}</p>
-                {message.content && (
-                  <p className="text-sm">{message.content}</p>
-                )}
-                {message.attachments && message.attachments.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {message.attachments.map((attachment, index) => (
-                      <div key={index} className="flex items-center">
-                        {attachment.type.startsWith('image/') ? (
-                          <a
-                            href={attachment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block"
-                          >
-                            <img
-                              src={attachment.url}
-                              alt={attachment.name}
-                              className="max-w-xs rounded"
-                            />
-                          </a>
-                        ) : (
-                          <a
-                            href={attachment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center space-x-2 ${
-                              message.sender_id === user?.id
-                                ? 'text-white'
-                                : 'text-indigo-600'
-                            }`}
-                          >
-                            <File className="h-4 w-4" />
-                            <span className="text-sm underline">
-                              {attachment.name}
-                            </span>
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <span className="text-xs text-gray-500 mt-1">
-                {format(new Date(message.created_at), 'HH:mm')}
-              </span>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+  {messages.map((message) => (
+    <div key={message.id} className={`flex flex-col ${message.sender_id === user?.id ? 'items-end' : 'items-start'}`}>
+      <div className={`max-w-[80%] rounded-lg p-3 ${message.sender_id === user?.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+        <p className="text-sm font-medium mb-1">{message.sender_name}</p>
+
+        {/* Display Text Message */}
+        {message.content && <p className="text-sm">{message.content}</p>}
+
+        {/* Display Attachments */}
+        {message.attachments?.map((attachment) => (
+          <div key={attachment.url} className="mt-2">
+            {attachment.type.startsWith("image/") ? (
+              <img src={attachment.url} alt={attachment.name} className="max-w-xs rounded-lg shadow-md" />
+            ) : (
+              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                {attachment.name}
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+      <span className="text-xs text-gray-500 mt-1">{format(new Date(message.created_at), 'HH:mm')}</span>
+    </div>
+  ))}
+  <div ref={messagesEndRef} />
+</div>
+
 
         <form onSubmit={sendMessage} className="p-3 sm:p-4 border-t">
-          <div className="space-y-2">
-            {files.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {files.map((file, index) => (
-                  <div
-                    key={index}
-                    className="bg-gray-100 rounded px-2 py-1 text-xs sm:text-sm flex items-center"
-                  >
-                    {file.type.startsWith('image/') ? (
-                      <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    ) : (
-                      <File className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    )}
-                    <span className="truncate max-w-[120px] sm:max-w-[150px]">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setFiles(files.filter((_, i) => i !== index))}
-                      className="ml-1 text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 rounded-full border border-gray-300 px-3 sm:px-4 py-2 text-sm focus:outline-none focus:border-indigo-500"
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-400 hover:text-gray-600"
-              >
-                <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-              <button
-                type="submit"
-                disabled={uploading}
-                className="bg-indigo-600 text-white rounded-full p-2 hover:bg-indigo-700 transition-colors disabled:opacity-50"
-              >
-                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-            </div>
+          <div className="flex space-x-2">
+            <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 rounded-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+            <input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" />
+            <button type="submit" disabled={uploading} className="bg-indigo-600 text-white rounded-full p-2 hover:bg-indigo-700 transition-colors disabled:opacity-50">
+              <Send className="h-5 w-5" />
+            </button>
+            <button 
+      type="button" 
+      onClick={() => fileInputRef.current?.click()} 
+      className="text-gray-500 hover:text-gray-700"
+    >
+      <Paperclip className="h-5 w-5" />
+    </button>
+
+    {/* Hidden File Input */}
+    <input 
+      ref={fileInputRef} 
+      type="file" 
+      multiple 
+      className="hidden" 
+      onChange={handleFileSelect} 
+    />
           </div>
         </form>
       </div>
