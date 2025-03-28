@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { TaskBoard } from './components/TaskBoard';
@@ -13,7 +13,8 @@ import { Help } from './pages/Help';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
-import Footer from '@/components/Footer'; // If using absolute imports
+import Footer from '@/components/Footer';
+
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -36,7 +37,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
         <Toaster position="top-right" />
         <div className="flex flex-col min-h-screen">
@@ -114,12 +115,13 @@ function App() {
             }
           />
         </Routes></main>
+        
        
         
       <Footer /> {/* Add Footer component here */}
     </div>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
     
   );
 }
