@@ -9,6 +9,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
-  base: "/Zidio-TaskManager/"
+  base: "/Zidio-TaskManager02/"
   //base: "/Zidio-TaskManager/"
 });
