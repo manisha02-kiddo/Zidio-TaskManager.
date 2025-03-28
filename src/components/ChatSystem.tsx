@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, X, Paperclip, Image, File } from 'lucide-react';
+import { Send, MessageSquare, X, Paperclip } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
