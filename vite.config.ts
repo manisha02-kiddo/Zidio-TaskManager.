@@ -8,5 +8,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
-  }
+  },
+  base: "/Zidio-TaskManager/"
+  //base: "/Zidio-TaskManager/"
 });
